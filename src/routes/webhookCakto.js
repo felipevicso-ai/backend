@@ -44,6 +44,8 @@ function isPagamentoAprovado(status) {
  * licença, salva no banco e envia a chave por e-mail automaticamente.
  */
 caktoWebhookRouter.post("/webhook/cakto", async (req, res) => {
+  console.log("PAYLOAD CAKTO:", JSON.stringify(req.body, null, 2));
+
   if (!isSignatureValid(req)) {
     return res.status(401).json({ ok: false, message: "Assinatura inválida." });
   }
