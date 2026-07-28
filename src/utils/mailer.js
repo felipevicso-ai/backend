@@ -54,3 +54,4 @@ return getTransporter().sendMail({
   subject: "Sua chave de acesso Onlive",
   html,
 });
+}
