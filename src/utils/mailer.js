@@ -40,16 +40,17 @@ export async function sendLicenseEmail({ to, licenseKey, plano, dataExpiracao })
 
   const from = process.env.MAIL_FROM || "Onlive <no-reply@onlive.app>";
 
-  if (!process.env.SMTP_HOST) {
-    // Sem SMTP configurado: não derruba o webhook, apenas loga.
-    console.warn("[mailer] SMTP não configurado; e-mail não enviado.", { to, licenseKey });
-    return { skipped: true };
-  }
-
-  return getTransporter().sendMail({
-    from,
-    to,
-    subject: "Sua chave de acesso Onlive",
-    html,
-  });
+ if (!process.env.SMTP_HOST) {
+  console.warn("[mailer] SMTP não configurado; e-mail não enviado.", { to, licenseKey });
+  return { skipped: true };
 }
+
+await getTransporter().verify();
+console.log("[mailer] SMTP conectado com sucesso");
+
+return getTransporter().sendMail({
+  from,
+  to,
+  subject: "Sua chave de acesso Onlive",
+  html,
+});
