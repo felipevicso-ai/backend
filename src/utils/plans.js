@@ -13,6 +13,8 @@ export const PLAN_ID_MAP = {
   onlive_mensal: "mensal",
   onlive_trimestral: "trimestral",
   onlive_anual: "anual",
+
+  "produto teste": "mensal",
 };
 
 export function resolvePlano(rawPlanoOuOferta) {
