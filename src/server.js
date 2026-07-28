@@ -9,6 +9,8 @@ import { caktoWebhookRouter } from "./routes/webhookCakto.js";
 
 const app = express();
 
+app.set("trust proxy", 1)
+
 // Guarda o corpo cru para a checagem de assinatura HMAC do webhook.
 app.use(
   express.json({
