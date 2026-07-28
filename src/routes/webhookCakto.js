@@ -35,9 +35,16 @@ function parseCaktoPayload(body) {
 function isPagamentoAprovado(status) {
   if (!status) return false;
   const s = String(status).toLowerCase();
-  return ["paid", "approved", "completed", "aprovado", "pago"].includes(s);
-}
 
+  return [
+    "paid",
+    "approved",
+    "completed",
+    "aprovado",
+    "pago",
+    "purchase_approved"
+  ].includes(s);
+}
 /**
  * POST /webhook/cakto
  * Recebe a notificação de pagamento da Cakto e, se aprovado, gera a
