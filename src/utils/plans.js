@@ -9,12 +9,12 @@ export const PLAN_DAYS = {
 };
 
 export const PLAN_ID_MAP = {
-  onlive_mensal: "mensal",
-  onlive_trimestral: "trimestral",
-  onlive_anual: "anual",
+  "onlive-mensal": "mensal",
+  "onlive-trimestral": "trimestral",
+  "onlive-anual": "anual",
 
+  // teste Cakto
   "produto teste": "mensal",
-  "special offer": "mensal",
 };
 
 export function resolvePlano(rawPlanoOuOferta) {
