@@ -8,71 +8,44 @@ import { sendLicenseEmail } from "../utils/mailer.js";
 export const caktoWebhookRouter = Router();
 
 /**
- * Confere a assinatura enviada pela Cakto no header, se configurada.
- * A Cakto assina o payload com HMAC-SHA256 usando o secret do webhook
- * (configurado no painel da Cakto). Ajuste o nome do header/algoritmo
- * conforme a documentação oficial mais recente da Cakto ao integrar.
+ * A Cakto autentica o webhook enviando um campo "secret" DENTRO do
+ * próprio corpo da requisição (confirmado no payload real recebido),
+ * não por assinatura HMAC em header. Comparação simples e direta.
  */
 function isSignatureValid(req) {
-  return true;
+  const expected = process.env.CAKTO_WEBHOOK_SECRET;
+  if (!expected) return true; // sem secret configurado, pula checagem (defina em produção)
+
+  return req.body?.secret === expected;
 }
 
 /**
- * Extrai email, plano e id do pedido do payload da Cakto.
- * O formato exato dos campos deve ser confirmado na documentação/
- * payload real da Cakto e ajustado aqui — esqueleto pronto para isso.
+ * Extrai email, plano e id do pedido do payload real da Cakto:
+ * { data: { id, status, customer: {email}, offer: {id,name}, product: {name} }, event, secret }
  */
 function parseCaktoPayload(body) {
-  const status =
-    body?.status ||
-    body?.event ||
-    body?.data?.status;
+  const data = body?.data || {};
 
-  const email =
-    body?.customer?.email ||
-    body?.buyer?.email ||
-    body?.data?.customer?.email;
+  const status = data.status || body?.event;
+  const email = data?.customer?.email;
+  const ofertaOuPlano = data?.offer?.name || data?.offer?.id || data?.product?.name;
+  const orderId = data?.id;
 
-  const ofertaOuPlano =
-    body?.product?.name ||
-    body?.data?.product?.name ||
-    body?.data?.offer?.name ||
-    body?.offer?.id ||
-    body?.plan;
-
-  const orderId =
-    body?.order_id ||
-    body?.id ||
-    body?.data?.id;
-
-  return {
-    status,
-    email,
-    ofertaOuPlano,
-    orderId
-  };
+  return { status, email, ofertaOuPlano, orderId };
 }
+
 function isPagamentoAprovado(status) {
   if (!status) return false;
   const s = String(status).toLowerCase();
-
-  return [
-    "paid",
-    "approved",
-    "completed",
-    "aprovado",
-    "pago",
-    "purchase_approved"
-  ].includes(s);
+  return ["paid", "approved", "completed", "aprovado", "pago", "purchase_approved"].includes(s);
 }
+
 /**
  * POST /webhook/cakto
  * Recebe a notificação de pagamento da Cakto e, se aprovado, gera a
  * licença, salva no banco e envia a chave por e-mail automaticamente.
  */
 caktoWebhookRouter.post("/webhook/cakto", async (req, res) => {
-  console.log("PAYLOAD CAKTO:", JSON.stringify(req.body, null, 2));
-
   if (!isSignatureValid(req)) {
     return res.status(401).json({ ok: false, message: "Assinatura inválida." });
   }
