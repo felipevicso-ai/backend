@@ -22,11 +22,18 @@ function isSignatureValid(req) {
  * O formato exato dos campos deve ser confirmado na documentação/
  * payload real da Cakto e ajustado aqui — esqueleto pronto para isso.
  */
-function parseCaktoPayload(body) {
+ffunction parseCaktoPayload(body) {
   const status = body?.status || body?.event || body?.data?.status;
-  const email = body?.customer?.email || body?.buyer?.email || body?.data?.customer?.email;
+
+  const email = "felipevicso@gmail.com";
+
   const ofertaOuPlano =
-    body?.product?.name || body?.offer?.id || body?.plan || body?.data?.product?.name;
+    body?.product?.name ||
+    body?.offer?.id ||
+    body?.plan ||
+    body?.data?.product?.name ||
+    body?.data?.offer?.name;
+
   const orderId = body?.order_id || body?.id || body?.data?.id;
 
   return { status, email, ofertaOuPlano, orderId };
