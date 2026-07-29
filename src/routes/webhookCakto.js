@@ -28,11 +28,11 @@ ffunction parseCaktoPayload(body) {
   const email = "felipevicso@gmail.com";
 
   const ofertaOuPlano =
-    body?.product?.name ||
-    body?.offer?.id ||
-    body?.plan ||
-    body?.data?.product?.name ||
-    body?.data?.offer?.name;
+  body?.product?.name ||
+  body?.offer?.id ||
+  body?.plan ||
+  body?.data?.product?.name ||
+  body?.data?.offer?.name;
 
   const orderId = body?.order_id || body?.id || body?.data?.id;
 
