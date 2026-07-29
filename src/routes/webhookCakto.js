@@ -23,20 +23,34 @@ function isSignatureValid(req) {
  * payload real da Cakto e ajustado aqui — esqueleto pronto para isso.
  */
 function parseCaktoPayload(body) {
-  const status = body?.status || body?.event || body?.data?.status;
+  const status =
+    body?.status ||
+    body?.event ||
+    body?.data?.status;
 
-  const email = "felipevicso@gmail.com";
+  const email =
+    body?.customer?.email ||
+    body?.buyer?.email ||
+    body?.data?.customer?.email;
 
   const ofertaOuPlano =
     body?.product?.name ||
-    body?.offer?.id ||
-    body?.plan ||
     body?.data?.product?.name ||
-    body?.data?.offer?.name;
+    body?.data?.offer?.name ||
+    body?.offer?.id ||
+    body?.plan;
 
-  const orderId = body?.order_id || body?.id || body?.data?.id;
+  const orderId =
+    body?.order_id ||
+    body?.id ||
+    body?.data?.id;
 
-  return { status, email, ofertaOuPlano, orderId };
+  return {
+    status,
+    email,
+    ofertaOuPlano,
+    orderId
+  };
 }
 function isPagamentoAprovado(status) {
   if (!status) return false;
