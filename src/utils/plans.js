@@ -9,12 +9,10 @@ export const PLAN_DAYS = {
 };
 
 export const PLAN_ID_MAP = {
-  "onlive-mensal": "mensal",
-  "onlive-trimestral": "trimestral",
-  "onlive-anual": "anual",
-
-  // teste Cakto
-  "produto teste": "mensal",
+  // Nomes exatos das ofertas configuradas na Cakto (aba Produtos → Minhas Assinaturas)
+  "onlive - mensal": "mensal",
+  "onlive - trimestral": "trimestral",
+  "onlive - anual": "anual",
 };
 
 export function resolvePlano(rawPlanoOuOferta) {
@@ -23,6 +21,15 @@ export function resolvePlano(rawPlanoOuOferta) {
 
   if (normalized in PLAN_DAYS) return normalized;
   if (normalized in PLAN_ID_MAP) return PLAN_ID_MAP[normalized];
+
+  // Fallback tolerante: se o nome da oferta mudar de formatação
+  // (espaços, maiúsculas, hífen), ainda reconhece pela palavra-chave.
+  // Checa "trimestral" antes de "mensal"/"anual" pra evitar falso
+  // positivo (nenhuma dessas palavras é substring uma da outra, mas
+  // a ordem deixa a intenção clara).
+  if (normalized.includes("trimestral")) return "trimestral";
+  if (normalized.includes("mensal")) return "mensal";
+  if (normalized.includes("anual")) return "anual";
 
   return null;
 }
