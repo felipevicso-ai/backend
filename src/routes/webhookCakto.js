@@ -22,7 +22,7 @@ function isSignatureValid(req) {
  * O formato exato dos campos deve ser confirmado na documentação/
  * payload real da Cakto e ajustado aqui — esqueleto pronto para isso.
  */
-ffunction parseCaktoPayload(body) {
+function parseCaktoPayload(body) {
   const status = body?.status || body?.event || body?.data?.status;
 
   const email = "felipevicso@gmail.com";
