@@ -322,3 +322,122 @@
 
       if (!data.licenses.length) {
         emptyEl.style.display = "block";
+        return;
+      }
+      emptyEl.style.display = "none";
+
+      for (const lic of data.licenses) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${lic.email}</td>
+          <td class="mono">${lic.license_key}</td>
+          <td>${planoLabel(lic.plano)}</td>
+          <td>${statusBadge(lic.status)}</td>
+          <td>${fmtDate(lic.data_expiracao)}</td>
+          <td>${lic.ultimo_acesso ? fmtDate(lic.ultimo_acesso) : "nunca"}</td>
+          <td class="actions">
+            <button class="btn-ghost btn-sm" data-copy="${lic.license_key}">Copiar</button>
+            ${lic.status === "cancelled"
+              ? `<button class="btn-ghost btn-sm" data-reactivate="${lic.id}">Reativar</button>`
+              : `<button class="btn-ghost btn-sm" data-deactivate="${lic.id}">Desativar</button>`}
+            <button class="btn-danger btn-sm" data-delete="${lic.id}">Excluir</button>
+          </td>
+        `;
+        rowsEl.appendChild(tr);
+      }
+    } catch (err) {
+      if (err.message !== "unauthorized") {
+        rowsEl.innerHTML = "";
+        emptyEl.style.display = "block";
+        emptyEl.textContent = "Erro ao carregar licenças: " + err.message;
+      }
+    }
+  }
+
+  document.getElementById("rows").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    if (btn.dataset.copy) {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent = "Copiado!";
+      setTimeout(() => (btn.textContent = "Copiar"), 1200);
+      return;
+    }
+
+    if (btn.dataset.deactivate) {
+      if (!confirm("Desativar essa licença? O acesso será bloqueado imediatamente.")) return;
+      await api(`/admin/api/licenses/${btn.dataset.deactivate}/deactivate`, { method: "PATCH" });
+      loadLicenses();
+      return;
+    }
+
+    if (btn.dataset.reactivate) {
+      await api(`/admin/api/licenses/${btn.dataset.reactivate}/reactivate`, { method: "PATCH" });
+      loadLicenses();
+      return;
+    }
+
+    if (btn.dataset.delete) {
+      if (!confirm("Excluir essa licença permanentemente? Essa ação não pode ser desfeita.")) return;
+      await api(`/admin/api/licenses/${btn.dataset.delete}`, { method: "DELETE" });
+      loadLicenses();
+      return;
+    }
+  });
+
+  document.getElementById("f-submit").addEventListener("click", async () => {
+    const email = document.getElementById("f-email").value.trim();
+    const plano = document.getElementById("f-plano").value;
+    const validade = document.getElementById("f-validade").value; // yyyy-mm-dd
+    const msgEl = document.getElementById("f-msg");
+    msgEl.className = "msg";
+    msgEl.textContent = "";
+
+    if (!email) {
+      msgEl.className = "msg error";
+      msgEl.textContent = "Informe o e-mail.";
+      return;
+    }
+
+    try {
+      const body = { email, plano };
+      if (validade) body.dataExpiracao = new Date(validade + "T23:59:59").toISOString();
+
+      const data = await api("/admin/api/licenses", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      msgEl.className = "msg ok";
+      msgEl.textContent = `Licença criada: ${data.license.license_key}`;
+      document.getElementById("f-email").value = "";
+      document.getElementById("f-validade").value = "";
+      loadLicenses();
+    } catch (err) {
+      msgEl.className = "msg error";
+      msgEl.textContent = err.message;
+    }
+  });
+
+  document.getElementById("refresh").addEventListener("click", loadLicenses);
+  document.getElementById("search").addEventListener("input", debounce(loadLicenses, 300));
+  document.getElementById("filter-status").addEventListener("change", loadLicenses);
+
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  // Bootstrap
+  if (adminToken) {
+    api("/admin/api/licenses").then(showApp).catch(() => showGate());
+  } else {
+    showGate();
+  }
+</script>
+</body>
+</html>
