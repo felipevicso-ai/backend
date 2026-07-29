@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onlive — Admin de Licenças</title>
+<style>
+  :root {
+    --bg-primary: #08090b;
+    --bg-secondary: #101216;
+    --bg-card: #131519;
+    --bg-card-hover: #171a1f;
+    --border: #1e2126;
+    --border-soft: #191c21;
+    --text-primary: #f5f7fa;
+    --text-secondary: #8b909c;
+    --text-tertiary: #5b606b;
+    --accent: #39ff8a;
+    --accent-strong: #22e070;
+    --accent-glow: rgba(57, 255, 138, 0.28);
+    --danger: #ff5c5c;
+    --warning: #ffb300;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --font-display: "Sora", -apple-system, sans-serif;
+    --font-body: "Inter", -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    margin: 0;
+  }
+  header h1 span { color: var(--accent); }
+  header .status {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 32px 60px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    margin: 0 0 14px;
+    color: var(--text-primary);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1.2fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+  @media (max-width: 720px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+  }
+  input, select {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  button {
+    font-family: var(--font-body);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #06210f; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text-primary); border-color: var(--text-tertiary); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,92,92,0.35); }
+  .btn-danger:hover { background: rgba(255,92,92,0.1); }
+  .btn-sm { padding: 6px 10px; font-size: 11.5px; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1; min-width: 200px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    text-align: left;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: var(--bg-card-hover); }
+  .mono { font-family: "SFMono-Regular", Consolas, monospace; color: var(--text-primary); }
+  .badge {
+    display: inline-block;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-active { background: rgba(57,255,138,0.1); color: var(--accent); border: 1px solid rgba(57,255,138,0.3); }
+  .badge-expired { background: rgba(255,179,0,0.1); color: var(--warning); border: 1px solid rgba(255,179,0,0.3); }
+  .badge-cancelled { background: rgba(255,92,92,0.1); color: var(--danger); border: 1px solid rgba(255,92,92,0.3); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--text-tertiary); padding: 30px 0; font-size: 13px; }
+  .msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
+  .msg.error { color: var(--danger); }
+  .msg.ok { color: var(--accent); }
+
+  .gate {
+    max-width: 360px;
+    margin: 80px auto;
+    text-align: center;
+  }
+  .gate input { width: 100%; margin-top: 12px; }
+  .gate button { width: 100%; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate card" style="display:none;">
+  <h2 style="margin-bottom:4px;">Onlive Admin</h2>
+  <p style="color:var(--text-secondary); font-size:12.5px;">Informe o token de administrador para continuar.</p>
+  <input id="gate-token" type="password" placeholder="Admin token" />
+  <button class="btn-primary" id="gate-submit">Entrar</button>
+  <p class="msg error" id="gate-error"></p>
+</div>
+
+<div id="app" style="display:none;">
+  <header>
+    <h1>Onlive <span>Admin</span> · Licenças</h1>
+    <span class="status" id="conn-status">conectado</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Criar licença manualmente</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="f-email">E-mail</label>
+          <input id="f-email" type="email" placeholder="cliente@email.com" />
+        </div>
+        <div class="field">
+          <label for="f-plano">Plano</label>
+          <select id="f-plano">
+            <option value="mensal">Mensal</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-validade">Validade (opcional)</label>
+          <input id="f-validade" type="date" />
+        </div>
+        <button class="btn-primary" id="f-submit">Gerar licença</button>
+      </div>
+      <p class="msg" id="f-msg"></p>
+    </section>
+
+    <section class="card">
+      <h2>Licenças</h2>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Buscar por e-mail ou chave..." />
+        <select id="filter-status">
+          <option value="">Todos os status</option>
+          <option value="active">Ativas</option>
+          <option value="expired">Expiradas</option>
+          <option value="cancelled">Canceladas</option>
+        </select>
+        <button class="btn-ghost" id="refresh">Atualizar</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>E-mail</th>
+              <th>Chave</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Expira em</th>
+              <th>Último acesso</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <p class="empty" id="empty" style="display:none;">Nenhuma licença encontrada.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const TOKEN_KEY = "onlive_admin_token";
+  let adminToken = localStorage.getItem(TOKEN_KEY) || "";
+
+  const gate = document.getElementById("gate");
+  const app = document.getElementById("app");
+
+  function planoLabel(p) {
+    return { mensal: "Mensal", trimestral: "Trimestral", anual: "Anual" }[p] || p;
+  }
+
+  function statusBadge(status) {
+    const map = { active: ["Ativa", "badge-active"], expired: ["Expirada", "badge-expired"], cancelled: ["Cancelada", "badge-cancelled"] };
+    const [label, cls] = map[status] || [status, "badge-cancelled"];
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return isNaN(d) ? "—" : d.toLocaleDateString("pt-BR");
+  }
+
+  async function api(path, options = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-token": adminToken,
+        ...(options.headers || {}),
+      },
+    });
+
+    if (res.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      adminToken = "";
+      showGate("Token inválido ou expirado.");
+      throw new Error("unauthorized");
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.message || "Erro na requisição.");
+    }
+    return data;
+  }
+
+  function showGate(error) {
+    gate.style.display = "block";
+    app.style.display = "none";
+    document.getElementById("gate-error").textContent = error || "";
+  }
+
+  function showApp() {
+    gate.style.display = "none";
+    app.style.display = "block";
+    loadLicenses();
+  }
+
+  document.getElementById("gate-submit").addEventListener("click", async () => {
+    const value = document.getElementById("gate-token").value.trim();
+    if (!value) return;
+    adminToken = value;
+    try {
+      await api("/admin/api/licenses");
+      localStorage.setItem(TOKEN_KEY, adminToken);
+      showApp();
+    } catch (err) {
+      showGate("Token inválido.");
+    }
+  });
+
+  async function loadLicenses() {
+    const search = document.getElementById("search").value.trim();
+    const status = document.getElementById("filter-status").value;
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+
+    const rowsEl = document.getElementById("rows");
+    const emptyEl = document.getElementById("empty");
+
+    try {
+      const data = await api(`/admin/api/licenses?${params.toString()}`);
+      rowsEl.innerHTML = "";
+
+      if (!data.licenses.length) {
+        emptyEl.style.display = "block";
