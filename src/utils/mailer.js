@@ -5,31 +5,24 @@ let transporter = null;
 function getTransporter() {
   if (transporter) return transporter;
 
-  // Configure com qualquer provedor SMTP (Resend, SES, Postmark, Zoho, etc).
   transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false,
-  requireTLS: true,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  logger: true,
-  debug: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 
   return transporter;
 }
 
-export async function sendLicenseEmail({ to, licenseKey, plano, dataExpiracao }) {
+function buildHtml({ licenseKey, plano, dataExpiracao }) {
   const planoLabel = { mensal: "Mensal", trimestral: "Trimestral", anual: "Anual" }[plano] || plano;
   const expiraFormatada = new Date(dataExpiracao).toLocaleDateString("pt-BR");
 
-  const html = `
+  return `
     <div style="background:#08090b;padding:32px;font-family:Inter,-apple-system,sans-serif;color:#f5f7fa;">
       <div style="max-width:480px;margin:0 auto;background:#131519;border:1px solid #1e2126;border-radius:18px;padding:32px;">
         <h1 style="color:#39ff8a;font-size:20px;margin:0 0 16px;">Sua assinatura Onlive está ativa</h1>
@@ -43,21 +36,58 @@ export async function sendLicenseEmail({ to, licenseKey, plano, dataExpiracao })
       </div>
     </div>
   `;
-
-  const from = process.env.MAIL_FROM || "Onlive <no-reply@onlive.app>";
-
- if (!process.env.SMTP_HOST) {
-  console.warn("[mailer] SMTP não configurado; e-mail não enviado.", { to, licenseKey });
-  return { skipped: true };
 }
 
-await getTransporter().verify();
-console.log("[mailer] SMTP conectado com sucesso");
+/**
+ * Envia via API HTTP da Brevo (porta 443/HTTPS) em vez de SMTP.
+ * Preferido em PaaS (Railway, Render, etc.) porque portas de SMTP
+ * (587/465/25) costumam ser bloqueadas na saída, enquanto HTTPS nunca é.
+ */
+async function sendViaBrevoApi({ to, licenseKey, plano, dataExpiracao }) {
+  const from = process.env.MAIL_FROM || "Onlive <no-reply@onlive.app>";
+  const fromMatch = from.match(/^(.*)<(.+)>$/);
+  const fromName = fromMatch ? fromMatch[1].trim() : "Onlive";
+  const fromEmail = fromMatch ? fromMatch[2].trim() : from;
 
-return getTransporter().sendMail({
-  from,
-  to,
-  subject: "Sua chave de acesso Onlive",
-  html,
-});
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject: "Sua chave de acesso Onlive",
+      htmlContent: buildHtml({ licenseKey, plano, dataExpiracao }),
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Brevo API respondeu ${res.status}: ${body}`);
+  }
+
+  return res.json();
+}
+
+export async function sendLicenseEmail({ to, licenseKey, plano, dataExpiracao }) {
+  if (process.env.BREVO_API_KEY) {
+    return sendViaBrevoApi({ to, licenseKey, plano, dataExpiracao });
+  }
+
+  if (!process.env.SMTP_HOST) {
+    console.warn("[mailer] Nem BREVO_API_KEY nem SMTP_HOST configurados; e-mail não enviado.", { to, licenseKey });
+    return { skipped: true };
+  }
+
+  // Fallback: SMTP tradicional (só chega aqui se BREVO_API_KEY não estiver definida).
+  const from = process.env.MAIL_FROM || "Onlive <no-reply@onlive.app>";
+  return getTransporter().sendMail({
+    from,
+    to,
+    subject: "Sua chave de acesso Onlive",
+    html: buildHtml({ licenseKey, plano, dataExpiracao }),
+  });
 }
